@@ -1,20 +1,22 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'myMaven'    // Name from Global Tool Configuration
+    }
+
     environment {
-        dockerHome = tool 'myDocker'
-        mavenHome = tool 'myMaven'
-        PATH = "$dockerHome/bin:$mavenHome/bin:$PATH"
+        // Registry credentials ID (set in Jenkins Credentials)
+        DOCKERHUB_CREDENTIALS = 'dockerhub'
+        IMAGE_NAME = "vakdevi/question-service"
     }
 
     stages {
         stage('Checkout') {
             steps {
+                checkout scm
                 sh 'mvn --version'
-                sh 'docker version'
-                echo "PATH - $PATH"
-                echo "BUILD_NUMBER - $env.BUILD_NUMBER"
-                echo "JOB_NAME - $env.JOB_NAME"
+                sh 'docker --version'
             }
         }
 
@@ -45,7 +47,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    dockerImage = docker.build("vakdevi/question-service:${env.BUILD_TAG}")
+                    dockerImage = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}")
                 }
             }
         }
@@ -53,24 +55,24 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('', 'dockerhub') {
+                    docker.withRegistry('', DOCKERHUB_CREDENTIALS) {
                         dockerImage.push()
                         dockerImage.push('latest')
                     }
                 }
             }
         }
-    } 
-    
+    }
+
     post {
         always {
             echo 'Pipeline finished (always runs)'
         }
         success {
-            echo ' Build & Push Successful!'
+            echo 'Build & Push Successful!'
         }
         failure {
-            echo ' Build Failed!'
+            echo 'Build Failed!'
         }
     }
 }
