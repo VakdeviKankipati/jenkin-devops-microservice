@@ -45,12 +45,14 @@ pipeline {
         }
 
         stage('Build Docker Image') {
-            steps {
-                script {
-                    dockerImage = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}")
-                }
+    steps {
+        script {
+            withEnv(["DOCKER_TLS_VERIFY=", "DOCKER_CERT_PATH="]) {
+                dockerImage = docker.build("${IMAGE_NAME}:${env.BUILD_NUMBER}")
             }
         }
+    }
+}
 
         stage('Push Docker Image') {
             steps {
